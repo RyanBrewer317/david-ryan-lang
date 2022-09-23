@@ -6159,31 +6159,122 @@ var $author$project$Main$parsePrefixOp = $elm$parser$Parser$oneOf(
 			},
 			$author$project$Main$symb('-'))
 		]));
-var $author$project$Main$StringLit = function (a) {
-	return {$: 'StringLit', a: a};
-};
-var $elm$parser$Parser$UnexpectedChar = {$: 'UnexpectedChar'};
-var $elm$parser$Parser$Advanced$chompIf = F2(
-	function (isGood, expecting) {
-		return $elm$parser$Parser$Advanced$Parser(
-			function (s) {
-				var newOffset = A3($elm$parser$Parser$Advanced$isSubChar, isGood, s.offset, s.src);
-				return _Utils_eq(newOffset, -1) ? A2(
+var $author$project$Main$PropLit = F2(
+	function (a, b) {
+		return {$: 'PropLit', a: a, b: b};
+	});
+var $elm$parser$Parser$ExpectingVariable = {$: 'ExpectingVariable'};
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
+var $elm$core$Dict$member = F2(
+	function (key, dict) {
+		var _v0 = A2($elm$core$Dict$get, key, dict);
+		if (_v0.$ === 'Just') {
+			return true;
+		} else {
+			return false;
+		}
+	});
+var $elm$core$Set$member = F2(
+	function (key, _v0) {
+		var dict = _v0.a;
+		return A2($elm$core$Dict$member, key, dict);
+	});
+var $elm$parser$Parser$Advanced$varHelp = F7(
+	function (isGood, offset, row, col, src, indent, context) {
+		varHelp:
+		while (true) {
+			var newOffset = A3($elm$parser$Parser$Advanced$isSubChar, isGood, offset, src);
+			if (_Utils_eq(newOffset, -1)) {
+				return {col: col, context: context, indent: indent, offset: offset, row: row, src: src};
+			} else {
+				if (_Utils_eq(newOffset, -2)) {
+					var $temp$isGood = isGood,
+						$temp$offset = offset + 1,
+						$temp$row = row + 1,
+						$temp$col = 1,
+						$temp$src = src,
+						$temp$indent = indent,
+						$temp$context = context;
+					isGood = $temp$isGood;
+					offset = $temp$offset;
+					row = $temp$row;
+					col = $temp$col;
+					src = $temp$src;
+					indent = $temp$indent;
+					context = $temp$context;
+					continue varHelp;
+				} else {
+					var $temp$isGood = isGood,
+						$temp$offset = newOffset,
+						$temp$row = row,
+						$temp$col = col + 1,
+						$temp$src = src,
+						$temp$indent = indent,
+						$temp$context = context;
+					isGood = $temp$isGood;
+					offset = $temp$offset;
+					row = $temp$row;
+					col = $temp$col;
+					src = $temp$src;
+					indent = $temp$indent;
+					context = $temp$context;
+					continue varHelp;
+				}
+			}
+		}
+	});
+var $elm$parser$Parser$Advanced$variable = function (i) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			var firstOffset = A3($elm$parser$Parser$Advanced$isSubChar, i.start, s.offset, s.src);
+			if (_Utils_eq(firstOffset, -1)) {
+				return A2(
 					$elm$parser$Parser$Advanced$Bad,
 					false,
-					A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : (_Utils_eq(newOffset, -2) ? A3(
-					$elm$parser$Parser$Advanced$Good,
-					true,
-					_Utils_Tuple0,
-					{col: 1, context: s.context, indent: s.indent, offset: s.offset + 1, row: s.row + 1, src: s.src}) : A3(
-					$elm$parser$Parser$Advanced$Good,
-					true,
-					_Utils_Tuple0,
-					{col: s.col + 1, context: s.context, indent: s.indent, offset: newOffset, row: s.row, src: s.src}));
-			});
-	});
-var $elm$parser$Parser$chompIf = function (isGood) {
-	return A2($elm$parser$Parser$Advanced$chompIf, isGood, $elm$parser$Parser$UnexpectedChar);
+					A2($elm$parser$Parser$Advanced$fromState, s, i.expecting));
+			} else {
+				var s1 = _Utils_eq(firstOffset, -2) ? A7($elm$parser$Parser$Advanced$varHelp, i.inner, s.offset + 1, s.row + 1, 1, s.src, s.indent, s.context) : A7($elm$parser$Parser$Advanced$varHelp, i.inner, firstOffset, s.row, s.col + 1, s.src, s.indent, s.context);
+				var name = A3($elm$core$String$slice, s.offset, s1.offset, s.src);
+				return A2($elm$core$Set$member, name, i.reserved) ? A2(
+					$elm$parser$Parser$Advanced$Bad,
+					false,
+					A2($elm$parser$Parser$Advanced$fromState, s, i.expecting)) : A3($elm$parser$Parser$Advanced$Good, true, name, s1);
+			}
+		});
+};
+var $elm$parser$Parser$variable = function (i) {
+	return $elm$parser$Parser$Advanced$variable(
+		{expecting: $elm$parser$Parser$ExpectingVariable, inner: i.inner, reserved: i.reserved, start: i.start});
 };
 var $elm$parser$Parser$Advanced$chompWhileHelp = F5(
 	function (isGood, offset, row, col, s0) {
@@ -6261,6 +6352,70 @@ var $elm$parser$Parser$Advanced$getChompedString = function (parser) {
 	return A2($elm$parser$Parser$Advanced$mapChompedString, $elm$core$Basics$always, parser);
 };
 var $elm$parser$Parser$getChompedString = $elm$parser$Parser$Advanced$getChompedString;
+var $author$project$Main$ws = A2(
+	$elm$parser$Parser$map,
+	function (_v0) {
+		return _Utils_Tuple0;
+	},
+	$elm$parser$Parser$getChompedString(
+		$elm$parser$Parser$chompWhile(
+			function (c) {
+				return _Utils_eq(
+					c,
+					_Utils_chr(' ')) || (_Utils_eq(
+					c,
+					_Utils_chr('\n')) || (_Utils_eq(
+					c,
+					_Utils_chr('\r')) || _Utils_eq(
+					c,
+					_Utils_chr('\t'))));
+			})));
+var $author$project$Main$parseProp = function (e) {
+	return A2(
+		$elm$parser$Parser$keeper,
+		A2(
+			$elm$parser$Parser$ignorer,
+			A2(
+				$elm$parser$Parser$ignorer,
+				$elm$parser$Parser$succeed(
+					$author$project$Main$PropLit(e)),
+				$elm$parser$Parser$symbol('.')),
+			$author$project$Main$ws),
+		$elm$parser$Parser$variable(
+			{
+				inner: $elm$core$Char$isAlphaNum,
+				reserved: $elm$core$Set$fromList(
+					_List_fromArray(
+						['if', 'else'])),
+				start: $elm$core$Char$isAlpha
+			}));
+};
+var $author$project$Main$StringLit = function (a) {
+	return {$: 'StringLit', a: a};
+};
+var $elm$parser$Parser$UnexpectedChar = {$: 'UnexpectedChar'};
+var $elm$parser$Parser$Advanced$chompIf = F2(
+	function (isGood, expecting) {
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s) {
+				var newOffset = A3($elm$parser$Parser$Advanced$isSubChar, isGood, s.offset, s.src);
+				return _Utils_eq(newOffset, -1) ? A2(
+					$elm$parser$Parser$Advanced$Bad,
+					false,
+					A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : (_Utils_eq(newOffset, -2) ? A3(
+					$elm$parser$Parser$Advanced$Good,
+					true,
+					_Utils_Tuple0,
+					{col: 1, context: s.context, indent: s.indent, offset: s.offset + 1, row: s.row + 1, src: s.src}) : A3(
+					$elm$parser$Parser$Advanced$Good,
+					true,
+					_Utils_Tuple0,
+					{col: s.col + 1, context: s.context, indent: s.indent, offset: newOffset, row: s.row, src: s.src}));
+			});
+	});
+var $elm$parser$Parser$chompIf = function (isGood) {
+	return A2($elm$parser$Parser$Advanced$chompIf, isGood, $elm$parser$Parser$UnexpectedChar);
+};
 var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$parser$Parser$Expecting = function (a) {
 	return {$: 'Expecting', a: a};
@@ -6565,119 +6720,6 @@ var $elm$parser$Parser$sequence = function (i) {
 			trailing: $elm$parser$Parser$toAdvancedTrailing(i.trailing)
 		});
 };
-var $elm$parser$Parser$ExpectingVariable = {$: 'ExpectingVariable'};
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
-var $elm$core$Dict$member = F2(
-	function (key, dict) {
-		var _v0 = A2($elm$core$Dict$get, key, dict);
-		if (_v0.$ === 'Just') {
-			return true;
-		} else {
-			return false;
-		}
-	});
-var $elm$core$Set$member = F2(
-	function (key, _v0) {
-		var dict = _v0.a;
-		return A2($elm$core$Dict$member, key, dict);
-	});
-var $elm$parser$Parser$Advanced$varHelp = F7(
-	function (isGood, offset, row, col, src, indent, context) {
-		varHelp:
-		while (true) {
-			var newOffset = A3($elm$parser$Parser$Advanced$isSubChar, isGood, offset, src);
-			if (_Utils_eq(newOffset, -1)) {
-				return {col: col, context: context, indent: indent, offset: offset, row: row, src: src};
-			} else {
-				if (_Utils_eq(newOffset, -2)) {
-					var $temp$isGood = isGood,
-						$temp$offset = offset + 1,
-						$temp$row = row + 1,
-						$temp$col = 1,
-						$temp$src = src,
-						$temp$indent = indent,
-						$temp$context = context;
-					isGood = $temp$isGood;
-					offset = $temp$offset;
-					row = $temp$row;
-					col = $temp$col;
-					src = $temp$src;
-					indent = $temp$indent;
-					context = $temp$context;
-					continue varHelp;
-				} else {
-					var $temp$isGood = isGood,
-						$temp$offset = newOffset,
-						$temp$row = row,
-						$temp$col = col + 1,
-						$temp$src = src,
-						$temp$indent = indent,
-						$temp$context = context;
-					isGood = $temp$isGood;
-					offset = $temp$offset;
-					row = $temp$row;
-					col = $temp$col;
-					src = $temp$src;
-					indent = $temp$indent;
-					context = $temp$context;
-					continue varHelp;
-				}
-			}
-		}
-	});
-var $elm$parser$Parser$Advanced$variable = function (i) {
-	return $elm$parser$Parser$Advanced$Parser(
-		function (s) {
-			var firstOffset = A3($elm$parser$Parser$Advanced$isSubChar, i.start, s.offset, s.src);
-			if (_Utils_eq(firstOffset, -1)) {
-				return A2(
-					$elm$parser$Parser$Advanced$Bad,
-					false,
-					A2($elm$parser$Parser$Advanced$fromState, s, i.expecting));
-			} else {
-				var s1 = _Utils_eq(firstOffset, -2) ? A7($elm$parser$Parser$Advanced$varHelp, i.inner, s.offset + 1, s.row + 1, 1, s.src, s.indent, s.context) : A7($elm$parser$Parser$Advanced$varHelp, i.inner, firstOffset, s.row, s.col + 1, s.src, s.indent, s.context);
-				var name = A3($elm$core$String$slice, s.offset, s1.offset, s.src);
-				return A2($elm$core$Set$member, name, i.reserved) ? A2(
-					$elm$parser$Parser$Advanced$Bad,
-					false,
-					A2($elm$parser$Parser$Advanced$fromState, s, i.expecting)) : A3($elm$parser$Parser$Advanced$Good, true, name, s1);
-			}
-		});
-};
-var $elm$parser$Parser$variable = function (i) {
-	return $elm$parser$Parser$Advanced$variable(
-		{expecting: $elm$parser$Parser$ExpectingVariable, inner: i.inner, reserved: i.reserved, start: i.start});
-};
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Just') {
@@ -6687,24 +6729,6 @@ var $elm$core$Maybe$withDefault = F2(
 			return _default;
 		}
 	});
-var $author$project$Main$ws = A2(
-	$elm$parser$Parser$map,
-	function (_v0) {
-		return _Utils_Tuple0;
-	},
-	$elm$parser$Parser$getChompedString(
-		$elm$parser$Parser$chompWhile(
-			function (c) {
-				return _Utils_eq(
-					c,
-					_Utils_chr(' ')) || (_Utils_eq(
-					c,
-					_Utils_chr('\n')) || (_Utils_eq(
-					c,
-					_Utils_chr('\r')) || _Utils_eq(
-					c,
-					_Utils_chr('\t'))));
-			})));
 var $author$project$Main$compoundExpr = function (lit) {
 	return A2(
 		$elm$parser$Parser$loop,
@@ -6739,6 +6763,10 @@ var $author$project$Main$compoundExpr = function (lit) {
 												$author$project$Main$cyclic$parse()));
 									},
 									$author$project$Main$parseInfixOp)),
+								A2(
+								$elm$parser$Parser$map,
+								$elm$parser$Parser$Loop,
+								$author$project$Main$parseProp(left)),
 								A2(
 								$elm$parser$Parser$map,
 								A2(
@@ -6780,13 +6808,48 @@ function $author$project$Main$cyclic$parseLit() {
 			[
 				$author$project$Main$parseNone,
 				$author$project$Main$parseBool,
-				$author$project$Main$parseInt,
 				$author$project$Main$cyclic$parseVar(),
+				$author$project$Main$cyclic$parseMethodDec(),
+				$author$project$Main$parseInt,
 				$author$project$Main$parseString,
 				$author$project$Main$cyclic$parseIf(),
 				$author$project$Main$cyclic$parenthetical(),
 				$author$project$Main$cyclic$parseArray()
 			]));
+}
+function $author$project$Main$cyclic$parseMethodDec() {
+	return A2(
+		$elm$parser$Parser$keeper,
+		A2(
+			$elm$parser$Parser$keeper,
+			A2(
+				$elm$parser$Parser$keeper,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed($author$project$Main$BindLit),
+					$elm$parser$Parser$symbol('.')),
+				A2(
+					$elm$parser$Parser$ignorer,
+					A2(
+						$elm$parser$Parser$ignorer,
+						A2(
+							$elm$parser$Parser$map,
+							function (s) {
+								return '.' + s;
+							},
+							$elm$parser$Parser$variable(
+								{
+									inner: $elm$core$Char$isAlphaNum,
+									reserved: $elm$core$Set$fromList(_List_Nil),
+									start: $elm$core$Char$isAlpha
+								})),
+						$author$project$Main$ws),
+					$elm$parser$Parser$symbol('='))),
+			A2(
+				$elm$parser$Parser$ignorer,
+				$author$project$Main$cyclic$parse(),
+				$elm$parser$Parser$symbol(';'))),
+		$author$project$Main$cyclic$parse());
 }
 function $author$project$Main$cyclic$parseIf() {
 	return A2(
@@ -6988,6 +7051,10 @@ try {
 	$author$project$Main$cyclic$parseLit = function () {
 		return $author$project$Main$parseLit;
 	};
+	var $author$project$Main$parseMethodDec = $author$project$Main$cyclic$parseMethodDec();
+	$author$project$Main$cyclic$parseMethodDec = function () {
+		return $author$project$Main$parseMethodDec;
+	};
 	var $author$project$Main$parseIf = $author$project$Main$cyclic$parseIf();
 	$author$project$Main$cyclic$parseIf = function () {
 		return $author$project$Main$parseIf;
@@ -7009,7 +7076,7 @@ try {
 		return $author$project$Main$parseVar;
 	};
 } catch ($) {
-	throw 'Some top-level definitions from `Main` are causing infinite recursion:\n\n  ┌─────┐\n  │    parseLit\n  │     ↓\n  │    parseIf\n  │     ↓\n  │    parseArray\n  │     ↓\n  │    parenthetical\n  │     ↓\n  │    parse\n  │     ↓\n  │    compoundExpr\n  │     ↓\n  │    parseVar\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.1/bad-recursion to learn how to fix it!';}
+	throw 'Some top-level definitions from `Main` are causing infinite recursion:\n\n  ┌─────┐\n  │    parseLit\n  │     ↓\n  │    parseMethodDec\n  │     ↓\n  │    parseIf\n  │     ↓\n  │    parseArray\n  │     ↓\n  │    parenthetical\n  │     ↓\n  │    parse\n  │     ↓\n  │    compoundExpr\n  │     ↓\n  │    parseVar\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.1/bad-recursion to learn how to fix it!';}
 var $elm$parser$Parser$DeadEnd = F3(
 	function (row, col, problem) {
 		return {col: col, problem: problem, row: row};

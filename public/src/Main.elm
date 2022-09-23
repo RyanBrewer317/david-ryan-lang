@@ -6,7 +6,6 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Parser exposing (..)
 import Set
-import Dict
 
 main : Program () Model Update
 main = Browser.sandbox { 
@@ -56,6 +55,7 @@ type Expr = NoneLit
           | TupleLit (List Expr)
           | ArrayLit (List Expr)
           | IndexLit Expr Expr
+          | PropLit Expr String
 
 parseNone : Parser Expr
 parseNone = keyword "none" |> Parser.map (\_->NoneLit)
@@ -74,6 +74,14 @@ parseVar = variable {inner=Char.isAlphaNum, reserved=Set.fromList(["if", "else"]
                         |= parse
                     , succeed (VarLit var)
                     ])
+parseMethodDec = succeed BindLit
+              |. symbol "."
+              |= (variable {inner=Char.isAlphaNum, reserved=Set.fromList([]), start=Char.isAlpha} |> Parser.map (\s->"."++s))
+              |. ws
+              |. symbol "="
+              |= parse
+              |. symbol ";"
+              |= parse
 parseString : Parser Expr
 parseString = succeed StringLit
             |. token "\""
@@ -150,7 +158,7 @@ parenthetical = succeed TupleLit
                     _ -> succeed expr
           )
 parseLit : Parser Expr
-parseLit = oneOf [parseNone, parseBool, parseInt, parseVar, parseString, parseIf, parenthetical, parseArray]
+parseLit = oneOf [parseNone, parseBool, parseVar, parseMethodDec, parseInt, parseString, parseIf, parenthetical, parseArray]
 ws : Parser ()
 ws = chompWhile (\c -> c == ' ' || c == '\n' || c == '\r' || c == '\t') |> getChompedString |> Parser.map (\_->())
 symb : String -> Parser String
@@ -183,6 +191,11 @@ parseInfixOp = oneOf
     , symb "!="
     , symb "&&"
     ]
+parseProp : Expr -> Parser Expr
+parseProp e = succeed (PropLit e) -- the translation of a property to a method needs to happen in type checking, where the type of left is known (ie it may be a struct) and the right is known and/or used (called). If it is a method, the left side needs to be given as the first arg
+             |. symbol "."
+             |. ws
+             |= variable {inner=Char.isAlphaNum, reserved=Set.fromList(["if", "else"]), start=Char.isAlpha}
 parsePrefixOp : Parser String
 parsePrefixOp = [symb "!", symb "-" |> Parser.map(\_->"--")] |> oneOf -- the -- operator will be understood internally to be the prefix version of the - operator. It should have type a->a, with a hardcoded check that a is an int or float
 compoundExpr : Expr -> Parser Expr
@@ -191,6 +204,8 @@ compoundExpr lit = Parser.loop lit (\left
             |= oneOf 
                 [ parseInfixOp
                     |> andThen (\op-> succeed identity |= parse |> Parser.map (\right->(CallLit (VarLit op) [left, right])))
+                    |> Parser.map Loop
+                , parseProp left
                     |> Parser.map Loop
                 , sequence
                     { start = "("
