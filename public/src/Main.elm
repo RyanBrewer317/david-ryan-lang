@@ -15,16 +15,16 @@ main = Browser.sandbox {
     , update = update
     }
 
-type alias Model = { output : String }
+type alias Model = { code : String }
 
 init : Model
-init = { output = "" }
+init = { code = "" }
 
 type Update = NewCode String
 
 update : Update -> Model -> Model
 update msg model = case msg of
-    NewCode code -> { model | output = code }
+    NewCode code -> { model | code = code }
 
 view : Model -> Html Update
 view model = div [] 
@@ -35,11 +35,11 @@ view model = div []
         [ p [] [ text "Enter code below!" ]
         , textarea 
             [ id "code"
-            , placeholder "Write some lambda calculus code! Example: (\\x.\\y.x)(\\x.x)(3)"
+            , placeholder "Write some DRL code! Example: ((x)->(y)->x)((x)->x)(3)"
             , onInput NewCode 
             ] []
         , br [] []
-        , if model.output == "" then text "" else div [] [text "out"]
+        , if model.code == "" then text "" else div [] [text <| Debug.toString <| go model.code]
         , p [] [text "let-binding notation in the above box is ", pre [] [text "a = b; c"], text "where the usual notation is ", pre [] [text "let a = b in c"]]
         ]
     ]
@@ -64,10 +64,10 @@ parseBool = oneOf [symb "true", symb "false"] |> Parser.map (\s->BoolLit (s == "
 parseInt = number {binary=Nothing, float=Nothing, hex=Nothing, int=Just IntLit, octal=Nothing}
 parseVar : Parser Expr
 parseVar = variable {inner=Char.isAlphaNum, reserved=Set.fromList(["if", "else"]), start=Char.isAlpha}
+            |. ws
             |> andThen (\var->
                 oneOf 
                     [ succeed (BindLit var)
-                        |. ws
                         |. symbol "="
                         |= parse
                         |. symbol ";"
@@ -174,10 +174,7 @@ parseInfixOp = oneOf
         [ symb ">"
         , symb "|"
         ] |> andThen (\d->succeed (c++d)))
-    , symb "+" |> andThen (\c->oneOf 
-        [ symb "+"
-        , succeed ""
-        ] |> andThen (\d->succeed (c++d)))
+    , symb "+" -- the type inferrer should give this the type (a, b)->c and then when the operator is + it should check that the combination of types is valid
     , symb "-"
     , symb "*"
     , symb "/"
@@ -187,7 +184,7 @@ parseInfixOp = oneOf
     , symb "&&"
     ]
 parsePrefixOp : Parser String
-parsePrefixOp = List.map symb ["!", "-"] |> oneOf
+parsePrefixOp = [symb "!", symb "-" |> Parser.map(\_->"--")] |> oneOf -- the -- operator will be understood internally to be the prefix version of the - operator. It should have type a->a, with a hardcoded check that a is an int or float
 compoundExpr : Expr -> Parser Expr
 compoundExpr lit = Parser.loop lit (\left 
             -> succeed identity
@@ -218,7 +215,7 @@ parse = succeed identity
           |. ws
           |= oneOf 
             [ parsePrefixOp
-                |> andThen (\op->succeed ((\l->[l])>>CallLit (VarLit op)) |= parseLit)
+                |> andThen (\op->succeed ((\l->[l])>>CallLit (VarLit op)) |= lazy (\_->parse))
             , lazy (\_->parseLit)
             ]
           |. ws
