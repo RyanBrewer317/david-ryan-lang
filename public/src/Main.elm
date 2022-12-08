@@ -1,11 +1,11 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Parser exposing (..)
 import Set
+import Dict
 
 main : Program () Model Update
 main = Browser.sandbox { 
@@ -238,3 +238,28 @@ parse = succeed identity
 
 go : String -> Result (List DeadEnd) Expr
 go = run (parse|.end)
+
+currycall foo bars = 
+    let rec : Expr -> (List Expr) -> Expr
+        rec f b = case b of
+            [] -> CallLit f []
+            [bar] -> CallLit f [bar]
+            x::xs -> CallLit (rec f xs) [x]
+        in rec foo (List.reverse bars)
+
+debruijn : Dict.Dict String String -> Expr -> Expr
+debruijn renames exp = case exp of 
+        VarLit n -> 
+            let newname = Dict.get n renames in
+            case newname of
+                Nothing -> Debug.todo "getting nonexistent rename"
+                Just n2 -> VarLit n2
+        IfElseLit cond cons alt -> IfElseLit (debruijn renames cond) (debruijn renames cons) (debruijn renames alt)
+        LambdaLit args body -> 
+        CallLit function args -> CallLit (debrujin renames function) (debrujin renames args)
+        BindLit varName v e -> BindLit (debrujin renames varName) (debrujin renames v) (debrujin renames e)
+        TupleLit l -> TupleLit (List.foldr (\el oldlist -> debruijn renames el :: oldlist) [] l)
+        ArrayLit l -> ArrayLit (List.foldr (\el oldlist -> debruijn renames el :: oldlist) [] l) 
+        IndexLit list index -> IndexLit (debrujin renames list) (debrujin renames index)
+        PropLit object name -> PropLit (debrujin renames object) (debrujin renames name)
+        _ -> exp
